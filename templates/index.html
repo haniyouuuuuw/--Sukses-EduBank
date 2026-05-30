@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduBank 💰</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0F1923;--card:#1A2634;--green:#27AE60;--red:#E74C3C;--blue:#2980B9;
+  --purple:#8E44AD;--yellow:#F39C12;--text:#ECF0F1;--sub:#95A5A6;--border:#2C3E50;
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.nav{background:var(--card);padding:0 24px;display:flex;align-items:center;
+     border-bottom:2px solid var(--green);position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+.nav-logo{font-size:18px;font-weight:700;color:var(--green);padding:14px 0;margin-right:32px;}
+.nav-menu{display:flex;gap:2px;flex-wrap:wrap;flex:1;}
+.nav-btn{padding:14px 16px;background:none;border:none;color:var(--sub);
+         cursor:pointer;font-size:13px;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap;}
+.nav-btn:hover{color:var(--text);}
+.nav-btn.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* USER INFO di navbar kanan */
+.nav-user{display:flex;align-items:center;gap:10px;padding:8px 0;margin-left:auto;}
+.nav-user-info{display:flex;flex-direction:column;align-items:flex-end;}
+.nav-user-nama{font-size:13px;font-weight:600;color:var(--text);}
+.nav-user-email{font-size:11px;color:var(--sub);}
+.nav-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--green);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0;
+}
+.btn-logout{
+  padding:6px 14px;border-radius:8px;
+  background:transparent;border:1px solid var(--border);
+  color:var(--sub);cursor:pointer;font-size:12px;
+  transition:.2s;white-space:nowrap;
+}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* BULAN SELECTOR */
+.bulan-bar{background:var(--card);border-bottom:1px solid var(--border);
+           padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.bulan-bar label{font-size:12px;color:var(--sub);}
+.bulan-bar select{background:#0F1923;border:1px solid var(--border);border-radius:6px;
+                  padding:6px 10px;color:var(--text);font-size:13px;outline:none;}
+.bulan-bar select:focus{border-color:var(--green);}
+.bulan-bar .saldo-pill{background:var(--border);border-radius:20px;padding:4px 14px;font-size:12px;}
+.bulan-bar .saldo-pill span{color:var(--green);font-weight:700;}
+
+/* PAGES */
+.page{display:none;padding:24px;}
+.page.active{display:block;}
+
+/* SECTION TITLE */
+.sec-title{font-size:16px;font-weight:700;color:var(--green);margin-bottom:16px;
+           padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+/* CARDS */
+.cards{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px;}
+.card{background:var(--card);border-radius:12px;padding:18px;flex:1;min-width:160px;
+      border-left:4px solid var(--green);}
+.card.r{border-left-color:var(--red);}
+.card.b{border-left-color:var(--blue);}
+.card.p{border-left-color:var(--purple);}
+.card.y{border-left-color:var(--yellow);}
+.card-label{font-size:11px;color:var(--sub);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px;}
+.card-value{font-size:20px;font-weight:700;}
+.card-sub{font-size:11px;color:var(--sub);margin-top:4px;}
+
+/* CHARTS */
+.charts{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;}
+.chart-box{background:var(--card);border-radius:12px;padding:20px;flex:1;min-width:260px;}
+.chart-box h3{font-size:12px;color:var(--sub);text-align:center;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* TABLE */
+.tbl-wrap{background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.tbl-wrap table{width:100%;border-collapse:collapse;}
+.tbl-wrap th{background:#223344;color:var(--sub);padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.tbl-wrap td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);}
+.tbl-wrap tr:last-child td{border-bottom:none;}
+.tbl-wrap tr:hover td{background:#1e2f3f;}
+
+/* BADGE */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;}
+.badge.aman{background:#1E8449;color:#fff;}
+.badge.waspada{background:#D35400;color:#fff;}
+.badge.kritis{background:#922B21;color:#fff;}
+.badge.masuk{background:#1E8449;color:#fff;}
+.badge.keluar{background:#922B21;color:#fff;}
+.badge.kebutuhan{background:#1A5276;color:#fff;}
+.badge.impulsif{background:#922B21;color:#fff;}
+.badge.tabungan{background:#4A235A;color:#fff;}
+
+/* FORMS */
+.form-wrap{background:var(--card);border-radius:12px;padding:20px;margin-bottom:16px;}
+.form-wrap h3{font-size:14px;font-weight:700;color:var(--green);margin-bottom:16px;
+              display:flex;align-items:center;gap:8px;}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px;}
+.form-group label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;}
+.form-group input,.form-group select{
+  background:#0F1923;border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:.2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--green);}
+.form-group select option{background:#1A2634;}
+
+.btn{padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.2s;}
+.btn-green{background:var(--green);color:#fff;} .btn-green:hover{background:#219150;}
+.btn-red{background:var(--red);color:#fff;} .btn-red:hover{background:#c0392b;}
+.btn-blue{background:var(--blue);color:#fff;} .btn-blue:hover{background:#2471a3;}
+.btn-purple{background:var(--purple);color:#fff;} .btn-purple:hover{background:#76359d;}
+.btn-yellow{background:var(--yellow);color:#fff;} .btn-yellow:hover{background:#d68910;}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--sub);}
+.btn-ghost:hover{border-color:var(--text);color:var(--text);}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;}
+.alert.success{background:#1E8449;color:#fff;}
+.alert.error{background:#922B21;color:#fff;}
+.alert.warning{background:#D35400;color:#fff;}
+.alert.info{background:#1A5276;color:#fff;}
+
+/* TAB SWITCHER */
+.tab-switch{display:flex;gap:4px;background:var(--border);border-radius:10px;padding:4px;margin-bottom:16px;width:fit-content;}
+.tab-switch button{padding:7px 18px;border-radius:7px;border:none;background:transparent;
+                   color:var(--sub);cursor:pointer;font-size:13px;transition:.2s;}
+.tab-switch button.active{background:var(--green);color:#fff;font-weight:600;}
+
+/* RINGKASAN BOX */
+.ring-row{display:flex;justify-content:space-between;align-items:center;
+          padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.ring-row:last-child{border-bottom:none;}
+.ring-row .lbl{color:var(--sub);}
+.ring-row .val{font-weight:600;}
+.ring-row.total{border-top:2px solid var(--border);padding-top:10px;margin-top:4px;}
+.ring-row.total .lbl,.ring-row.total .val{font-size:15px;font-weight:700;}
+
+/* SIMULASI PROGRESS */
+.prog-bar-wrap{background:#0F1923;border-radius:8px;height:10px;margin:6px 0 2px;overflow:hidden;}
+.prog-bar{background:var(--green);height:100%;border-radius:8px;transition:.3s;}
+.sim-card{background:#0F1923;border-radius:10px;padding:16px;margin-top:12px;}
+.sim-card p{font-size:13px;color:var(--text);margin-bottom:8px;}
+.sim-card .big{font-size:24px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.sim-card .note{font-size:12px;color:var(--sub);}
+
+/* EW CARD */
+.ew-card{background:#0F1923;border-radius:10px;padding:14px;margin-bottom:12px;
+         border-left:3px solid var(--purple);}
+.ew-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.ew-card-header strong{font-size:14px;}
+.ew-card-header .saldo{font-size:18px;font-weight:700;color:var(--green);}
+.ew-card-rows{display:flex;flex-direction:column;gap:6px;font-size:12px;}
+.ew-card-row{display:flex;justify-content:space-between;}
+.ew-card-row .l{color:var(--sub);}
+
+/* MODAL CARRY-OVER */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+               align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:16px;padding:28px;max-width:420px;width:90%;border-top:4px solid var(--green);}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:10px;}
+.modal p{font-size:13px;color:var(--sub);margin-bottom:20px;line-height:1.6;}
+.modal-btns{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* MODAL LOGOUT CONFIRM */
+.modal-logout{background:var(--card);border-radius:16px;padding:28px;max-width:360px;width:90%;border-top:4px solid var(--red);}
+.modal-logout h3{font-size:17px;font-weight:700;margin-bottom:10px;}
+.modal-logout p{font-size:13px;color:var(--sub);margin-bottom:20px;line-height:1.6;}
+
+footer{text-align:center;padding:20px;color:#4A5568;font-size:12px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-logo">💰 EduBank</div>
+  <div class="nav-menu">
+    <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Dashboard</button>
+    <button class="nav-btn" onclick="showPage('transaksi')">📒 Pencatatan Transaksi</button>
+    <button class="nav-btn" onclick="showPage('tabungan')">🏦 Tabungan</button>
+    <button class="nav-btn" onclick="showPage('buku')">📊 Buku Keuangan</button>
+  </div>
+  <!-- User info + logout -->
+  <div class="nav-user">
+    <div class="nav-user-info">
+      <span class="nav-user-nama" id="nav-nama">–</span>
+      <span class="nav-user-email" id="nav-email">–</span>
+    </div>
+    <div class="nav-avatar" id="nav-avatar">?</div>
+    <button class="btn-logout" onclick="confirmLogout()">Keluar</button>
+  </div>
+</div>
+
+<!-- BULAN BAR (global) -->
+<div class="bulan-bar">
+  <label>Bulan Aktif:</label>
+  <select id="global-bulan" onchange="gantiBuilan()">
+    <option value="">-- Pilih Bulan --</option>
+    <option>Januari</option><option>Februari</option><option>Maret</option>
+    <option>April</option><option>Mei</option><option>Juni</option>
+    <option>Juli</option><option>Agustus</option><option>September</option>
+    <option>Oktober</option><option>November</option><option>Desember</option>
+  </select>
+  <div class="saldo-pill">Saldo Saku: <span id="pill-saku">Rp 0</span></div>
+  <div class="saldo-pill">E-Wallet: <span id="pill-ew">Rp 0</span></div>
+  <div class="saldo-pill" style="border:1px solid var(--green);">Total: <span id="pill-total">Rp 0</span></div>
+  <div class="saldo-pill" style="border:1px solid var(--blue);">Tabungan: <span id="pill-tab">Rp 0</span></div>
+</div>
+
+<!-- MODAL CARRY OVER -->
+<div class="modal-overlay" id="modal-carry">
+  <div class="modal">
+    <h3>🗓️ Bulan Baru Terdeteksi</h3>
+    <p id="modal-carry-text">Ada saldo dari bulan sebelumnya. Mau carry-over atau mulai dari 0?</p>
+    <div class="modal-btns">
+      <button class="btn btn-green" onclick="doCarry(true)">✅ Lanjutkan Saldo</button>
+      <button class="btn btn-red" onclick="doCarry(false)">🔄 Mulai dari Rp 0</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGOUT CONFIRM -->
+<div class="modal-overlay" id="modal-logout">
+  <div class="modal-logout">
+    <h3>👋 Keluar dari EduBank?</h3>
+    <p>Semua data kamu sudah tersimpan. Kamu bisa login kembali kapan saja.</p>
+    <div class="modal-btns">
+      <button class="btn btn-red" onclick="doLogout()">Ya, Keluar</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-logout').classList.remove('open')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="page-dashboard" class="page active">
+  <div class="sec-title">🏠 Dashboard EduBank</div>
+
+  <div class="cards">
+    <div class="card"><div class="card-label">Saldo Saku Aktif</div><div class="card-value" id="d-saku">Rp 0</div><div class="card-sub" id="d-saku-sub">–</div></div>
+    <div class="card p"><div class="card-label">Total E-Wallet</div><div class="card-value" id="d-ew">Rp 0</div><div class="card-sub">Semua dompet digital</div></div>
+    <div class="card b"><div class="card-label">Saldo Total</div><div class="card-value" id="d-total">Rp 0</div><div class="card-sub">Saku + E-Wallet</div></div>
+    <div class="card y"><div class="card-label">Saldo Tabungan</div><div class="card-value" id="d-tab">Rp 0</div><div class="card-sub">Terpisah & aman</div></div>
+    <div class="card r"><div class="card-label">Total Pengeluaran</div><div class="card-value" id="d-keluar">Rp 0</div><div class="card-sub">Bulan ini</div></div>
+    <div class="card"><div class="card-label">Total Pemasukan</div><div class="card-value" id="d-masuk">Rp 0</div><div class="card-sub">Bulan ini</div></div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-box"><h3>Pemasukan vs Pengeluaran</h3><canvas id="chartBulanan"></canvas></div>
+    <div class="chart-box"><h3>Kategori Pengeluaran (Saku + E-Wallet)</h3><canvas id="chartKategori"></canvas></div>
+    <div class="chart-box"><h3>E-Wallet per Dompet</h3><canvas id="chartEwallet"></canvas></div>
+  </div>
+
+  <div class="sec-title">💳 Status E-Wallet</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>E-Wallet</th><th>Pengguna</th><th>Saldo</th><th>Kebutuhan</th><th>Impulsif</th><th>Tabungan (lbl)</th><th>Status</th></tr></thead>
+      <tbody id="dash-ew-table"><tr><td colspan="7" style="text-align:center;color:var(--sub)">Belum ada e-wallet</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== PENCATATAN TRANSAKSI ==================== -->
+<div id="page-transaksi" class="page">
+  <div class="sec-title">📒 Pencatatan Transaksi Keuangan</div>
+  <div id="alert-transaksi" class="alert"></div>
+
+  <div class="tab-switch">
+    <button class="active" onclick="switchTab('saku',this)">💵 Transaksi Saku</button>
+    <button onclick="switchTab('ewallet',this)">💳 Transaksi E-Wallet</button>
+  </div>
+
+  <!-- TAB SAKU -->
+  <div id="tab-saku">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:280px;">
+        <div class="form-wrap">
+          <h3>💰 Saldo Awal Saku</h3>
+          <p style="font-size:12px;color:var(--sub);margin-bottom:12px;">Saldo ini untuk uang cash/rekening utama kamu.</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Saldo Awal (Rp)</label>
+              <input type="number" id="k-saldo" placeholder="contoh: 500000">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-green" onclick="setSaldo()">💾 Simpan Saldo Awal</button>
+            <button class="btn btn-ghost" onclick="resetSaldo()">🔄 Reset ke 0</button>
+          </div>
+        </div>
+
+        <div class="form-wrap">
+          <h3>➕ Tambah Transaksi Saku</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Hari</label>
+              <input type="number" id="k-hari" placeholder="1–31" min="1" max="31">
+            </div>
+            <div class="form-group">
+              <label>Jenis</label>
+              <select id="k-jenis" onchange="toggleKategoriSaku()">
+                <option value="pengeluaran">Pengeluaran</option>
+                <option value="pemasukan">Pemasukan</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" id="k-kat-wrap">
+              <label>Kategori</label>
+              <select id="k-kat">
+                <option value="kebutuhan">🟢 Kebutuhan</option>
+                <option value="impulsif">🔴 Impulsif</option>
+                <option value="tabungan">🔵 Tabungan (label)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Jumlah (Rp)</label>
+              <input type="number" id="k-jml" placeholder="contoh: 15000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Keterangan</label>
+              <input type="text" id="k-ket" placeholder="contoh: beli nasi goreng">
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="tambahTransaksiSaku()">+ Tambah</button>
+        </div>
+
+        <div class="form-wrap">
+          <h3>📥 Export Excel</h3>
+          <p style="font-size:12px;color:var(--sub);margin-bottom:12px;">Laporan lengkap dengan sheet per bulan, e-wallet, dan tabungan.</p>
+          <button class="btn btn-blue" onclick="exportExcel()">⬇ Download Excel</button>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:280px;">
+        <div class="form-wrap">
+          <h3>📋 Ringkasan Bulan Ini</h3>
+          <div id="ringkasan-saku"><p style="font-size:13px;color:var(--sub)">Pilih bulan dulu.</p></div>
+        </div>
+        <div class="form-wrap">
+          <h3>📅 Total Per Hari</h3>
+          <div id="perday-saku"><p style="font-size:13px;color:var(--sub)">Pilih bulan dulu.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-wrap">
+      <h3>📝 Daftar Transaksi Saku (Edit / Hapus)</h3>
+      <div class="tbl-wrap" style="margin:0;">
+        <table>
+          <thead><tr><th>Hari</th><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Jumlah</th><th>Aksi</th></tr></thead>
+          <tbody id="list-saku"><tr><td colspan="6" style="text-align:center;color:var(--sub)">Belum ada transaksi</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB E-WALLET -->
+  <div id="tab-ewallet" style="display:none;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:280px;">
+        <div class="form-wrap">
+          <h3>💳 Tambah / Update Saldo E-Wallet</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Pilih E-Wallet</label>
+              <select id="ew-pilih" onchange="cekEwalletLain()">
+                <option value="GoPay">GoPay</option>
+                <option value="ShopeePay">ShopeePay</option>
+                <option value="DANA">DANA</option>
+                <option value="OVO">OVO</option>
+                <option value="LinkAja">LinkAja</option>
+                <option value="Lainnya">Lainnya...</option>
+              </select>
+            </div>
+            <div class="form-group" id="ew-lain-wrap" style="display:none;">
+              <label>Nama E-Wallet</label>
+              <input type="text" id="ew-lain" placeholder="contoh: Jago, Flip">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nama Pengguna</label>
+              <input type="text" id="ew-pengguna" placeholder="contoh: Fina">
+            </div>
+            <div class="form-group">
+              <label>Saldo Saat Ini (Rp)</label>
+              <input type="number" id="ew-saldo" placeholder="contoh: 150000">
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="tambahEwallet()">💾 Simpan E-Wallet</button>
+        </div>
+
+        <div class="form-wrap">
+          <h3>➕ Catat Transaksi E-Wallet</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Bulan Transaksi</label>
+              <select id="ew-bulan">
+                <option value="">-- Pilih Bulan --</option>
+                <option>Januari</option><option>Februari</option><option>Maret</option>
+                <option>April</option><option>Mei</option><option>Juni</option>
+                <option>Juli</option><option>Agustus</option><option>September</option>
+                <option>Oktober</option><option>November</option><option>Desember</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Pilih E-Wallet</label>
+              <select id="ew-trx-pilih"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Jenis</label>
+              <select id="ew-jenis" onchange="toggleKategoriEw()">
+                <option value="pengeluaran">Pengeluaran</option>
+                <option value="pemasukan">Pemasukan (Top Up)</option>
+              </select>
+            </div>
+            <div class="form-group" id="ew-kat-wrap">
+              <label>Kategori</label>
+              <select id="ew-kat">
+                <option value="kebutuhan">🟢 Kebutuhan</option>
+                <option value="impulsif">🔴 Impulsif</option>
+                <option value="tabungan">🔵 Tabungan (label)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Keterangan</label>
+              <input type="text" id="ew-ket" placeholder="contoh: beli baju flash sale">
+            </div>
+            <div class="form-group">
+              <label>Jumlah (Rp)</label>
+              <input type="number" id="ew-jml" placeholder="contoh: 50000">
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="catatTrxEwallet()">+ Catat Transaksi</button>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:280px;">
+        <div class="form-wrap">
+          <h3>📊 Status Semua E-Wallet</h3>
+          <div id="ew-status"><p style="font-size:13px;color:var(--sub)">Belum ada e-wallet.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-wrap">
+      <h3>📝 Riwayat Transaksi E-Wallet (Edit / Hapus)</h3>
+      <div class="tbl-wrap" style="margin:0;">
+        <table>
+          <thead><tr><th>E-Wallet</th><th>Bulan</th><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Jumlah</th><th>Aksi</th></tr></thead>
+          <tbody id="list-ewallet"><tr><td colspan="7" style="text-align:center;color:var(--sub)">Belum ada transaksi</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TABUNGAN ==================== -->
+<div id="page-tabungan" class="page">
+  <div class="sec-title">🏦 Tabungan</div>
+  <div id="alert-tabungan" class="alert"></div>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:280px;">
+      <div class="form-wrap">
+        <h3>💰 Kelola Saldo Tabungan</h3>
+        <div style="text-align:center;padding:16px 0 20px;">
+          <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">SALDO TABUNGAN SAAT INI</div>
+          <div style="font-size:36px;font-weight:700;color:var(--green);" id="tab-saldo-display">Rp 0</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Jumlah</label>
+            <input type="number" id="tab-jml" placeholder="contoh: 100000">
+          </div>
+          <div class="form-group">
+            <label>Keterangan</label>
+            <input type="text" id="tab-ket" placeholder="contoh: Menabung rutin">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-green" onclick="kelolaTab('tambah')">+ Tambah Tabungan</button>
+          <button class="btn btn-red" onclick="kelolaTab('kurang')">− Ambil Tabungan</button>
+        </div>
+      </div>
+
+      <div class="form-wrap">
+        <h3>🔮 Simulasi Menabung</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Tabungan (Rp)</label>
+            <input type="number" id="sim-target" placeholder="contoh: 5000000">
+          </div>
+          <div class="form-group">
+            <label>Sanggup Sisihkan/Bulan (Rp)</label>
+            <input type="number" id="sim-per" placeholder="contoh: 300000">
+          </div>
+        </div>
+        <button class="btn btn-purple" onclick="simulasiNabung()">Hitung Estimasi →</button>
+        <div id="sim-result" style="display:none;margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:280px;">
+      <div class="form-wrap">
+        <h3>📋 Riwayat Tabungan</h3>
+        <div class="tbl-wrap" style="margin:0;">
+          <table>
+            <thead><tr><th>Jenis</th><th>Jumlah</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+            <tbody id="list-tabungan"><tr><td colspan="4" style="text-align:center;color:var(--sub)">Belum ada riwayat</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== BUKU KEUANGAN ==================== -->
+<div id="page-buku" class="page">
+  <div class="sec-title">📊 Buku Keuangan</div>
+
+  <div class="cards">
+    <div class="card"><div class="card-label">Total Pemasukan Semua Bulan</div><div class="card-value" id="bk-masuk">Rp 0</div></div>
+    <div class="card r"><div class="card-label">Total Pengeluaran Semua Bulan</div><div class="card-value" id="bk-keluar">Rp 0</div></div>
+    <div class="card b"><div class="card-label">Saldo Total Saat Ini</div><div class="card-value" id="bk-total">Rp 0</div><div class="card-sub">Saku + E-Wallet</div></div>
+    <div class="card y"><div class="card-label">Total Tabungan</div><div class="card-value" id="bk-tab">Rp 0</div></div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-box" style="flex:2;min-width:320px;"><h3>Pemasukan vs Pengeluaran per Bulan</h3><canvas id="bk-chartBulanan"></canvas></div>
+    <div class="chart-box"><h3>Kategori Pengeluaran (Gabungan)</h3><canvas id="bk-chartKat"></canvas></div>
+  </div>
+
+  <div class="sec-title">📅 Rekap per Bulan</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Bulan</th><th>Saldo Awal</th><th>Pemasukan</th><th>Pengeluaran</th><th>Saldo Saku Akhir</th><th>Total E-Wallet</th><th>Saldo Total</th><th>Status</th></tr></thead>
+      <tbody id="bk-table"><tr><td colspan="8" style="text-align:center;color:var(--sub)">Belum ada data</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="sec-title">🔍 Ringkasan Bulan Aktif</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div class="form-wrap" style="flex:1;min-width:260px;">
+      <h3>💵 Saku</h3>
+      <div id="bk-ring-saku"><p style="color:var(--sub);font-size:13px">Pilih bulan dulu.</p></div>
+    </div>
+    <div class="form-wrap" style="flex:1;min-width:260px;">
+      <h3>💳 E-Wallet</h3>
+      <div id="bk-ring-ew"><p style="color:var(--sub);font-size:13px">–</p></div>
+    </div>
+    <div class="form-wrap" style="flex:1;min-width:260px;">
+      <h3>📦 Kategori Pengeluaran</h3>
+      <div id="bk-ring-kat"><p style="color:var(--sub);font-size:13px">–</p></div>
+    </div>
+  </div>
+</div>
+
+<footer>EduBank © 2025 — Edukasi Finansial Anak Muda Indonesia 🇮🇩</footer>
+
+<script>
+// ===========================
+// STATE
+// ===========================
+let state = {
+  bulan_aktif: "",
+  jumlah_hari: 0,
+  data_keuangan: {},
+  data_ewallet: {},
+  data_tabungan: { saldo: 0, riwayat: [] }
+};
+let pendingCarryBulan = null;
+let pendingCarrySaldo = 0;
+let chartBulanan = null, chartKategori = null, chartEwallet = null;
+let bkChartBulanan = null, bkChartKat = null;
+
+const URUTAN_BULAN = ["januari","februari","maret","april","mei","juni",
+                      "juli","agustus","september","oktober","november","desember"];
+const HARI_BULAN  = {januari:31,februari:28,maret:31,april:30,mei:31,juni:30,
+                     juli:31,agustus:31,september:30,oktober:31,november:30,desember:31};
+
+// ===========================
+// UTILS
+// ===========================
+const rp = n => "Rp " + parseInt(n||0).toLocaleString("id-ID");
+
+function showAlert(id, msg, type){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg; el.className = `alert ${type}`; el.style.display = "block";
+  setTimeout(()=>{ el.style.display = "none"; }, 3500);
+}
+
+function hitungSaldoAkhirSaku(bulan){
+  const d = state.data_keuangan[bulan];
+  if(!d) return 0;
+  const s = d.saldo_awal || 0;
+  const m = Object.values(d.pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+  const k = Object.values(d.pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+  return s + m - k;
+}
+
+function totalEw(){
+  return Object.values(state.data_ewallet||{}).reduce((s,e)=>s+e.saldo,0);
+}
+
+function updatePills(){
+  const b = state.bulan_aktif;
+  const saku = b ? hitungSaldoAkhirSaku(b) : 0;
+  const ew   = totalEw();
+  document.getElementById("pill-saku").textContent  = rp(saku);
+  document.getElementById("pill-ew").textContent    = rp(ew);
+  document.getElementById("pill-total").textContent = rp(saku + ew);
+  document.getElementById("pill-tab").textContent   = rp(state.data_tabungan.saldo);
+}
+
+// ===========================
+// LOAD / SAVE
+// ===========================
+async function loadState(){
+  try{
+    const r = await fetch("/api/state");
+    if(r.status === 401){ window.location.href="/login"; return; }
+    state = await r.json();
+    if(!state.data_tabungan) state.data_tabungan = {saldo:0, riwayat:[]};
+  } catch(e){ console.log("Gagal load"); }
+}
+
+async function saveState(){
+  const r = await fetch("/api/save",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(state)
+  });
+  if(r.status === 401){ window.location.href="/login"; return; }
+  updatePills();
+}
+
+// ===========================
+// USER INFO + LOGOUT
+// ===========================
+async function loadUserInfo(){
+  try{
+    const r    = await fetch("/api/me");
+    if(r.status===401){ window.location.href="/login"; return; }
+    const data = await r.json();
+    document.getElementById("nav-nama").textContent  = data.nama;
+    document.getElementById("nav-email").textContent = data.email;
+    document.getElementById("nav-avatar").textContent = data.nama.charAt(0).toUpperCase();
+  } catch(e){}
+}
+
+function confirmLogout(){
+  document.getElementById("modal-logout").classList.add("open");
+}
+
+async function doLogout(){
+  await fetch("/api/logout",{method:"POST"});
+  window.location.href = "/login";
+}
+
+// ===========================
+// NAVIGASI
+// ===========================
+function showPage(p){
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
+  document.getElementById("page-"+p).classList.add("active");
+  const idx = {dashboard:0, transaksi:1, tabungan:2, buku:3}[p];
+  document.querySelectorAll(".nav-btn")[idx].classList.add("active");
+  if(p==="dashboard") refreshDashboard();
+  if(p==="transaksi") refreshTransaksi();
+  if(p==="tabungan")  refreshTabungan();
+  if(p==="buku")      refreshBuku();
+}
+
+// ===========================
+// GANTI BULAN (global)
+// ===========================
+async function gantiBuilan(){
+  const bulan = document.getElementById("global-bulan").value;
+  if(!bulan) return;
+  if(state.data_keuangan[bulan]){
+    state.bulan_aktif = bulan;
+    state.jumlah_hari = HARI_BULAN[bulan.toLowerCase()];
+    await saveState(); refreshTransaksi(); updatePills(); return;
+  }
+  const prevIdx = URUTAN_BULAN.indexOf(bulan.toLowerCase()) - 1;
+  let carryNominal = 0;
+  if(prevIdx >= 0){
+    const prev = URUTAN_BULAN[prevIdx];
+    const prevCap = prev.charAt(0).toUpperCase() + prev.slice(1);
+    if(state.data_keuangan[prevCap]) carryNominal = hitungSaldoAkhirSaku(prevCap);
+  }
+  if(carryNominal > 0){
+    pendingCarryBulan = bulan; pendingCarrySaldo = carryNominal;
+    document.getElementById("modal-carry-text").textContent =
+      `Saldo akhir bulan sebelumnya: ${rp(carryNominal)}. Mau carry-over ke ${bulan} atau mulai dari Rp 0?`;
+    document.getElementById("modal-carry").classList.add("open");
+  } else {
+    buatBulanBaru(bulan, 0);
+  }
+}
+
+async function doCarry(pakai){
+  document.getElementById("modal-carry").classList.remove("open");
+  buatBulanBaru(pendingCarryBulan, pakai ? pendingCarrySaldo : 0);
+}
+
+async function buatBulanBaru(bulan, saldo_awal){
+  state.data_keuangan[bulan] = { saldo_awal, pemasukan:{}, pengeluaran:{} };
+  state.bulan_aktif = bulan;
+  state.jumlah_hari = HARI_BULAN[bulan.toLowerCase()];
+  await saveState(); refreshTransaksi(); updatePills();
+}
+
+// ===========================
+// DASHBOARD
+// ===========================
+async function refreshDashboard(){
+  await loadState();
+  const b      = state.bulan_aktif;
+  const saku   = b ? hitungSaldoAkhirSaku(b) : 0;
+  const ew     = totalEw();
+  const d      = b && state.data_keuangan[b] ? state.data_keuangan[b] : null;
+  const masuk  = d ? Object.values(d.pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0) : 0;
+  const keluar = d ? Object.values(d.pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0) : 0;
+
+  document.getElementById("d-saku").textContent   = rp(saku);
+  document.getElementById("d-saku-sub").textContent = b ? `Bulan ${b}` : "Pilih bulan";
+  document.getElementById("d-ew").textContent     = rp(ew);
+  document.getElementById("d-total").textContent  = rp(saku + ew);
+  document.getElementById("d-tab").textContent    = rp(state.data_tabungan.saldo);
+  document.getElementById("d-masuk").textContent  = rp(masuk);
+  document.getElementById("d-keluar").textContent = rp(keluar);
+  updatePills();
+
+  const bulanArr  = Object.keys(state.data_keuangan);
+  const masukArr  = bulanArr.map(bl=> Object.values(state.data_keuangan[bl].pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0));
+  const keluarArr = bulanArr.map(bl=> Object.values(state.data_keuangan[bl].pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0));
+  if(chartBulanan) chartBulanan.destroy();
+  chartBulanan = new Chart(document.getElementById("chartBulanan"),{
+    type:"bar",
+    data:{labels:bulanArr,datasets:[
+      {label:"Pemasukan",data:masukArr,backgroundColor:"#27AE60",borderRadius:6},
+      {label:"Pengeluaran",data:keluarArr,backgroundColor:"#E74C3C",borderRadius:6}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#ECF0F1"}}},
+             scales:{x:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}},y:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}}}}
+  });
+
+  let totKeb=0,totImp=0,totTab=0;
+  for(const bl in state.data_keuangan)
+    for(const items of Object.values(state.data_keuangan[bl].pengeluaran||{}))
+      for(const i of items){
+        if(i.kategori==="kebutuhan") totKeb+=i.jumlah;
+        else if(i.kategori==="impulsif") totImp+=i.jumlah;
+        else if(i.kategori==="tabungan") totTab+=i.jumlah;
+      }
+  for(const info of Object.values(state.data_ewallet||{}))
+    for(const t of info.transaksi||[])
+      if(t.jenis==="pengeluaran"){
+        if(t.kategori==="kebutuhan") totKeb+=t.jumlah;
+        else if(t.kategori==="impulsif") totImp+=t.jumlah;
+        else if(t.kategori==="tabungan") totTab+=t.jumlah;
+      }
+  if(chartKategori) chartKategori.destroy();
+  chartKategori = new Chart(document.getElementById("chartKategori"),{
+    type:"doughnut",
+    data:{labels:["Kebutuhan","Impulsif","Tabungan (lbl)"],
+          datasets:[{data:[totKeb,totImp,totTab],backgroundColor:["#27AE60","#E74C3C","#2980B9"],borderColor:"#1A2634",borderWidth:2}]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#ECF0F1"}}}}
+  });
+
+  const ewNames = Object.keys(state.data_ewallet||{});
+  const ewSaldo = ewNames.map(n=>state.data_ewallet[n].saldo||0);
+  if(chartEwallet) chartEwallet.destroy();
+  chartEwallet = new Chart(document.getElementById("chartEwallet"),{
+    type:"bar",
+    data:{labels:ewNames,datasets:[{label:"Saldo",data:ewSaldo,backgroundColor:"#8E44AD",borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#ECF0F1"}}},
+             scales:{x:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}},y:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}}}}
+  });
+
+  let rows="";
+  for(const nama in state.data_ewallet||{}){
+    const info=state.data_ewallet[nama], trx=info.transaksi||[];
+    const keb=trx.filter(t=>t.kategori==="kebutuhan"&&t.jenis==="pengeluaran").reduce((s,t)=>s+t.jumlah,0);
+    const imp=trx.filter(t=>t.kategori==="impulsif"&&t.jenis==="pengeluaran").reduce((s,t)=>s+t.jumlah,0);
+    const tab=trx.filter(t=>t.kategori==="tabungan"&&t.jenis==="pengeluaran").reduce((s,t)=>s+t.jumlah,0);
+    const tot=keb+imp+tab, pct=tot>0?imp/tot*100:0;
+    const badge=pct<30?'<span class="badge aman">Aman</span>':pct<50?'<span class="badge waspada">Waspada</span>':'<span class="badge kritis">Kritis</span>';
+    rows+=`<tr><td>💳 ${nama}</td><td>${info.pengguna||"-"}</td><td>${rp(info.saldo)}</td><td>${rp(keb)}</td><td>${rp(imp)}</td><td>${rp(tab)}</td><td>${badge}</td></tr>`;
+  }
+  document.getElementById("dash-ew-table").innerHTML=rows||`<tr><td colspan="7" style="text-align:center;color:var(--sub)">Belum ada e-wallet</td></tr>`;
+}
+
+// ===========================
+// TAB SWITCHER
+// ===========================
+function switchTab(tab, btn){
+  document.getElementById("tab-saku").style.display   = tab==="saku"?"block":"none";
+  document.getElementById("tab-ewallet").style.display= tab==="ewallet"?"block":"none";
+  document.querySelectorAll(".tab-switch button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  if(tab==="ewallet") refreshEwStatus();
+}
+function toggleKategoriSaku(){ document.getElementById("k-kat-wrap").style.display=document.getElementById("k-jenis").value==="pengeluaran"?"flex":"none"; }
+function toggleKategoriEw(){ document.getElementById("ew-kat-wrap").style.display=document.getElementById("ew-jenis").value==="pengeluaran"?"flex":"none"; }
+
+// ===========================
+// TRANSAKSI SAKU
+// ===========================
+async function setSaldo(){
+  if(!state.bulan_aktif){ showAlert("alert-transaksi","Pilih bulan dulu!","error"); return; }
+  state.data_keuangan[state.bulan_aktif].saldo_awal = parseInt(document.getElementById("k-saldo").value||0);
+  await saveState(); showAlert("alert-transaksi","Saldo awal disimpan!","success"); refreshTransaksi();
+}
+async function resetSaldo(){
+  if(!state.bulan_aktif){ showAlert("alert-transaksi","Pilih bulan dulu!","error"); return; }
+  state.data_keuangan[state.bulan_aktif].saldo_awal = 0;
+  document.getElementById("k-saldo").value = 0;
+  await saveState(); showAlert("alert-transaksi","Saldo awal direset ke Rp 0","warning"); refreshTransaksi();
+}
+async function tambahTransaksiSaku(){
+  const b=state.bulan_aktif;
+  if(!b){ showAlert("alert-transaksi","Pilih bulan dulu!","error"); return; }
+  const hari=parseInt(document.getElementById("k-hari").value||0);
+  const jenis=document.getElementById("k-jenis").value;
+  const kat=document.getElementById("k-kat").value;
+  const ket=document.getElementById("k-ket").value.trim();
+  const jml=parseInt(document.getElementById("k-jml").value||0);
+  const maxH=HARI_BULAN[b.toLowerCase()]||31;
+  if(!hari||hari<1||hari>maxH){ showAlert("alert-transaksi",`Hari harus 1–${maxH}!`,"error"); return; }
+  if(!ket){ showAlert("alert-transaksi","Isi keterangan!","error"); return; }
+  if(!jml){ showAlert("alert-transaksi","Isi jumlah!","error"); return; }
+  const key=`Day ${hari}`;
+  if(!state.data_keuangan[b][jenis][key]) state.data_keuangan[b][jenis][key]=[];
+  const item={keterangan:ket,jumlah:jml};
+  if(jenis==="pengeluaran") item.kategori=kat;
+  state.data_keuangan[b][jenis][key].push(item);
+  await saveState();
+  ["k-hari","k-ket","k-jml"].forEach(id=>document.getElementById(id).value="");
+  showAlert("alert-transaksi","Transaksi berhasil ditambahkan!","success"); refreshTransaksi();
+}
+async function hapusTrxSaku(bulan,jenis,key,idx){
+  state.data_keuangan[bulan][jenis][key].splice(idx,1);
+  await saveState(); refreshTransaksi(); updatePills();
+}
+
+function refreshTransaksi(){
+  const b=state.bulan_aktif;
+  if(b&&state.data_keuangan[b]) document.getElementById("k-saldo").value=state.data_keuangan[b].saldo_awal||0;
+  if(b&&state.data_keuangan[b]){
+    const d=state.data_keuangan[b], s=d.saldo_awal||0;
+    const m=Object.values(d.pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    const k=Object.values(d.pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    const akhir=s+m-k, pct=s>0?(akhir/s*100):0;
+    const status=pct>=70?"🟢 Aman":pct>=40?"🟡 Waspada":pct>=10?"🟠 Hampir Habis":akhir>=0?"🔴 Kritis":"❌ Defisit";
+    document.getElementById("ringkasan-saku").innerHTML=`
+      <div class="ring-row"><span class="lbl">Bulan Aktif</span><span class="val">${b}</span></div>
+      <div class="ring-row"><span class="lbl">Saldo Awal</span><span class="val">${rp(s)}</span></div>
+      <div class="ring-row"><span class="lbl" style="color:#27AE60">Pemasukan</span><span class="val" style="color:#27AE60">${rp(m)}</span></div>
+      <div class="ring-row"><span class="lbl" style="color:#E74C3C">Pengeluaran</span><span class="val" style="color:#E74C3C">${rp(k)}</span></div>
+      <div class="ring-row total"><span class="lbl">Saldo Saku Akhir</span><span class="val">${rp(akhir)}</span></div>
+      <div class="ring-row"><span class="lbl">Total E-Wallet</span><span class="val" style="color:#8E44AD">${rp(totalEw())}</span></div>
+      <div class="ring-row total"><span class="lbl">SALDO TOTAL</span><span class="val" style="color:#27AE60">${rp(akhir+totalEw())}</span></div>
+      <div class="ring-row"><span class="lbl">Status</span><span class="val">${status}</span></div>`;
+    let perday="";
+    const allKeys=new Set([...Object.keys(d.pemasukan||{}),...Object.keys(d.pengeluaran||{})]);
+    [...allKeys].sort((a,b2)=>parseInt(a.split(" ")[1])-parseInt(b2.split(" ")[1])).forEach(key=>{
+      const mm=(d.pemasukan[key]||[]).reduce((s,i)=>s+i.jumlah,0);
+      const kk=(d.pengeluaran[key]||[]).reduce((s,i)=>s+i.jumlah,0);
+      perday+=`<div class="ring-row"><span class="lbl">${key}</span><span style="color:#27AE60;font-size:12px">+${rp(mm)}</span><span style="color:#E74C3C;font-size:12px">-${rp(kk)}</span></div>`;
+    });
+    document.getElementById("perday-saku").innerHTML=perday||`<p style="color:var(--sub);font-size:13px">Belum ada transaksi.</p>`;
+  } else {
+    document.getElementById("ringkasan-saku").innerHTML=`<p style="color:var(--sub);font-size:13px">Pilih bulan dulu.</p>`;
+    document.getElementById("perday-saku").innerHTML=`<p style="color:var(--sub);font-size:13px">Pilih bulan dulu.</p>`;
+  }
+  let rows="";
+  if(b&&state.data_keuangan[b]){
+    const d=state.data_keuangan[b];
+    for(const jenis of ["pemasukan","pengeluaran"])
+      for(const key in d[jenis]||{})
+        d[jenis][key].forEach((item,idx)=>{
+          const katBadge=item.kategori?`<span class="badge ${item.kategori}">${item.kategori}</span>`:`<span style="color:var(--sub)">–</span>`;
+          rows+=`<tr><td>${key}</td><td><span class="badge ${jenis==="pemasukan"?"masuk":"keluar"}">${jenis}</span></td><td>${katBadge}</td><td>${item.keterangan}</td><td>${rp(item.jumlah)}</td><td><button class="btn btn-red btn-sm" onclick="hapusTrxSaku('${b}','${jenis}','${key}',${idx})">Hapus</button></td></tr>`;
+        });
+  }
+  document.getElementById("list-saku").innerHTML=rows||`<tr><td colspan="6" style="text-align:center;color:var(--sub)">Belum ada transaksi</td></tr>`;
+  refreshEwStatus(); refreshListEwallet();
+}
+
+// ===========================
+// E-WALLET
+// ===========================
+function cekEwalletLain(){ document.getElementById("ew-lain-wrap").style.display=document.getElementById("ew-pilih").value==="Lainnya"?"flex":"none"; }
+async function tambahEwallet(){
+  let nama=document.getElementById("ew-pilih").value;
+  if(nama==="Lainnya"){ nama=document.getElementById("ew-lain").value.trim(); if(!nama){ showAlert("alert-transaksi","Isi nama e-wallet!","error"); return; } }
+  const pengguna=document.getElementById("ew-pengguna").value.trim()||"Tidak diisi";
+  const saldo=parseInt(document.getElementById("ew-saldo").value||0);
+  const key=`${nama} (${pengguna})`;
+  if(!state.data_ewallet[key]) state.data_ewallet[key]={saldo:0,pengguna,transaksi:[]};
+  state.data_ewallet[key].saldo=saldo; state.data_ewallet[key].pengguna=pengguna;
+  await saveState(); showAlert("alert-transaksi",`${key} → ${rp(saldo)} berhasil disimpan!`,"success");
+  refreshEwStatus(); refreshListEwallet(); updatePills();
+}
+async function catatTrxEwallet(){
+  const bulan=document.getElementById("ew-bulan").value, nama=document.getElementById("ew-trx-pilih").value;
+  const jenis=document.getElementById("ew-jenis").value, kat=document.getElementById("ew-kat").value;
+  const ket=document.getElementById("ew-ket").value.trim(), jml=parseInt(document.getElementById("ew-jml").value||0);
+  if(!bulan||!nama||!ket||!jml){ showAlert("alert-transaksi","Lengkapi semua field!","error"); return; }
+  const kategori=jenis==="pengeluaran"?kat:"pemasukan";
+  if(jenis==="pengeluaran") state.data_ewallet[nama].saldo-=jml;
+  else state.data_ewallet[nama].saldo+=jml;
+  state.data_ewallet[nama].transaksi.push({bulan,jenis,kategori,keterangan:ket,jumlah:jml});
+  await saveState(); ["ew-ket","ew-jml"].forEach(id=>document.getElementById(id).value="");
+  showAlert("alert-transaksi",`Transaksi ${jenis} ${rp(jml)} berhasil dicatat!`,"success");
+  refreshEwStatus(); refreshListEwallet(); updatePills();
+}
+async function hapusTrxEw(nama,idx){
+  const t=state.data_ewallet[nama].transaksi[idx];
+  if(t.jenis==="pengeluaran") state.data_ewallet[nama].saldo+=t.jumlah;
+  else state.data_ewallet[nama].saldo-=t.jumlah;
+  state.data_ewallet[nama].transaksi.splice(idx,1);
+  await saveState(); refreshEwStatus(); refreshListEwallet(); updatePills();
+}
+function refreshEwStatus(){
+  const sel=document.getElementById("ew-trx-pilih");
+  sel.innerHTML=Object.keys(state.data_ewallet||{}).map(k=>`<option>${k}</option>`).join("")||`<option value="">-- Tambah e-wallet dulu --</option>`;
+  const ew=state.data_ewallet||{};
+  if(!Object.keys(ew).length){ document.getElementById("ew-status").innerHTML=`<p style="color:var(--sub);font-size:13px">Belum ada e-wallet.</p>`; return; }
+  let html="",totImp=0,totKel=0;
+  for(const nama in ew){
+    const info=ew[nama],trx=info.transaksi||[];
+    const keb=trx.filter(t=>t.jenis==="pengeluaran"&&t.kategori==="kebutuhan").reduce((s,t)=>s+t.jumlah,0);
+    const imp=trx.filter(t=>t.jenis==="pengeluaran"&&t.kategori==="impulsif").reduce((s,t)=>s+t.jumlah,0);
+    const tab=trx.filter(t=>t.jenis==="pengeluaran"&&t.kategori==="tabungan").reduce((s,t)=>s+t.jumlah,0);
+    const tot=keb+imp+tab; totImp+=imp; totKel+=tot;
+    const pct=tot>0?(imp/tot*100):0;
+    html+=`<div class="ew-card"><div class="ew-card-header"><strong>💳 ${nama}</strong><div class="saldo">${rp(info.saldo)}</div></div>
+      <div class="ew-card-rows">
+        <div class="ew-card-row"><span class="l">Pengguna</span><span>${info.pengguna||"-"}</span></div>
+        <div class="ew-card-row"><span class="l">Kebutuhan</span><span style="color:#27AE60">${rp(keb)}</span></div>
+        <div class="ew-card-row"><span class="l">Impulsif</span><span style="color:#E74C3C">${rp(imp)}</span></div>
+        <div class="ew-card-row"><span class="l">Tabungan (lbl)</span><span style="color:#2980B9">${rp(tab)}</span></div>
+        ${tot>0?`<div class="ew-card-row"><span class="l">% Impulsif</span><span style="color:${pct>=50?"#E74C3C":pct>=30?"#D35400":"#27AE60"};font-weight:700">${pct.toFixed(1)}%</span></div>`:""}
+      </div></div>`;
+  }
+  const pctTot=totKel>0?(totImp/totKel*100):0;
+  const saran=pctTot>=50?"⚠️ Lebih dari setengah uang e-wallet habis impulsif!":pctTot>=30?"⚠️ Pengeluaran impulsif cukup tinggi.":"✅ Pengeluaran e-wallet kamu terkontrol.";
+  html+=`<div style="border-radius:8px;padding:10px;background:#0F1923;font-size:12px;color:${pctTot>=50?"#E74C3C":pctTot>=30?"#D35400":"#27AE60"};margin-top:4px;">${saran}</div>`;
+  document.getElementById("ew-status").innerHTML=html;
+}
+function refreshListEwallet(){
+  let rows="";
+  for(const nama in state.data_ewallet||{})
+    state.data_ewallet[nama].transaksi.forEach((t,idx)=>{
+      rows+=`<tr><td>${nama}</td><td>${t.bulan||"-"}</td><td><span class="badge ${t.jenis==="pemasukan"?"masuk":"keluar"}">${t.jenis}</span></td><td><span class="badge ${t.kategori}">${t.kategori}</span></td><td>${t.keterangan}</td><td>${rp(t.jumlah)}</td><td><button class="btn btn-red btn-sm" onclick="hapusTrxEw('${nama.replace(/'/g,"\\'")}',${idx})">Hapus</button></td></tr>`;
+    });
+  document.getElementById("list-ewallet").innerHTML=rows||`<tr><td colspan="7" style="text-align:center;color:var(--sub)">Belum ada transaksi</td></tr>`;
+}
+
+// ===========================
+// TABUNGAN
+// ===========================
+async function kelolaTab(jenis){
+  const jml=parseInt(document.getElementById("tab-jml").value||0);
+  const ket=document.getElementById("tab-ket").value.trim()||(jenis==="tambah"?"Menabung":"Pengambilan tabungan");
+  if(!jml||jml<=0){ showAlert("alert-tabungan","Isi jumlah yang valid!","error"); return; }
+  if(jenis==="kurang"&&jml>state.data_tabungan.saldo){ showAlert("alert-tabungan","Saldo tabungan tidak cukup!","error"); return; }
+  if(jenis==="tambah") state.data_tabungan.saldo+=jml; else state.data_tabungan.saldo-=jml;
+  state.data_tabungan.riwayat.push({jenis,jumlah:jml,keterangan:ket});
+  await saveState(); document.getElementById("tab-jml").value=""; document.getElementById("tab-ket").value="";
+  showAlert("alert-tabungan",`${jenis==="tambah"?"Tabungan bertambah":"Tabungan berkurang"} ${rp(jml)}!`,"success"); refreshTabungan();
+}
+async function hapusRiwayatTab(idx){
+  const r=state.data_tabungan.riwayat[idx];
+  if(r.jenis==="tambah") state.data_tabungan.saldo-=r.jumlah; else state.data_tabungan.saldo+=r.jumlah;
+  state.data_tabungan.riwayat.splice(idx,1);
+  await saveState(); refreshTabungan(); updatePills();
+}
+function refreshTabungan(){
+  document.getElementById("tab-saldo-display").textContent=rp(state.data_tabungan.saldo||0);
+  updatePills();
+  let rows="";
+  state.data_tabungan.riwayat.forEach((r,idx)=>{
+    rows+=`<tr><td><span class="badge ${r.jenis==="tambah"?"masuk":"keluar"}">${r.jenis}</span></td><td style="color:${r.jenis==="tambah"?"#27AE60":"#E74C3C"}">${rp(r.jumlah)}</td><td>${r.keterangan}</td><td><button class="btn btn-red btn-sm" onclick="hapusRiwayatTab(${idx})">Hapus</button></td></tr>`;
+  });
+  document.getElementById("list-tabungan").innerHTML=rows||`<tr><td colspan="4" style="text-align:center;color:var(--sub)">Belum ada riwayat</td></tr>`;
+}
+function simulasiNabung(){
+  const target=parseInt(document.getElementById("sim-target").value||0);
+  const per=parseInt(document.getElementById("sim-per").value||0);
+  if(!target||!per||per<=0){ showAlert("alert-tabungan","Isi target dan sisihan per bulan!","error"); return; }
+  const saldoSkrng=state.data_tabungan.saldo||0, sisaTarget=Math.max(0,target-saldoSkrng);
+  if(sisaTarget===0){ document.getElementById("sim-result").style.display="block"; document.getElementById("sim-result").innerHTML=`<div class="sim-card"><div class="big">🎉 Target Tercapai!</div><p>Saldo tabungan kamu sudah ${rp(saldoSkrng)}!</p></div>`; return; }
+  const bulanBtuh=Math.ceil(sisaTarget/per);
+  const pesan=bulanBtuh<=3?"🚀 Sangat realistis! Semangat!":bulanBtuh<=6?"💪 Butuh konsisten, tapi bisa!":bulanBtuh<=12?"📅 Butuh hampir setahun.":"📈 Cukup lama. Naikkan jumlah sisihan.";
+  let progHtml="", terkumpul=saldoSkrng;
+  for(let i=1;i<=bulanBtuh;i++){
+    terkumpul=Math.min(terkumpul+per,target);
+    if(i%3===0||i===1||terkumpul>=target){
+      const pct=Math.min(terkumpul/target*100,100);
+      progHtml+=`<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Bulan ${i}</span><span>${pct.toFixed(1)}% — ${rp(terkumpul)}</span></div><div class="prog-bar-wrap"><div class="prog-bar" style="width:${pct}%"></div></div></div>`;
+    }
+    if(terkumpul>=target) break;
+  }
+  document.getElementById("sim-result").style.display="block";
+  document.getElementById("sim-result").innerHTML=`<div class="sim-card"><div class="big">~${bulanBtuh} bulan</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:13px;"><div><span style="color:var(--sub)">Target: </span><b>${rp(target)}</b></div><div><span style="color:var(--sub)">Sisa: </span><b style="color:#E74C3C">${rp(sisaTarget)}</b></div><div><span style="color:var(--sub)">Per bulan: </span><b>${rp(per)}</b></div></div><div class="note" style="margin-bottom:12px;">${pesan}</div>${progHtml}</div>`;
+}
+
+// ===========================
+// BUKU KEUANGAN
+// ===========================
+async function refreshBuku(){
+  await loadState();
+  const ew_total=totalEw(); let totalMasuk=0,totalKeluar=0,totKeb=0,totImp=0,totTab=0;
+  const bulanArr=[],masukArr=[],keluarArr=[]; let rows="";
+  for(const bulan in state.data_keuangan){
+    const d=state.data_keuangan[bulan], s=d.saldo_awal||0;
+    const m=Object.values(d.pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    const k=Object.values(d.pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    const akhir=s+m-k, pct=s>0?(akhir/s*100):0;
+    const status=pct>=70?"Aman":pct>=40?"Waspada":pct>=10?"Hampir Habis":"Defisit";
+    const bgSt=status==="Aman"?"aman":status==="Waspada"?"waspada":"kritis";
+    totalMasuk+=m; totalKeluar+=k; bulanArr.push(bulan); masukArr.push(m); keluarArr.push(k);
+    for(const items of Object.values(d.pengeluaran||{})) for(const i of items){
+      if(i.kategori==="kebutuhan") totKeb+=i.jumlah; else if(i.kategori==="impulsif") totImp+=i.jumlah; else if(i.kategori==="tabungan") totTab+=i.jumlah;
+    }
+    rows+=`<tr><td>${bulan}</td><td>${rp(s)}</td><td style="color:#27AE60">${rp(m)}</td><td style="color:#E74C3C">${rp(k)}</td><td>${rp(akhir)}</td><td style="color:#8E44AD">${rp(ew_total)}</td><td><b>${rp(akhir+ew_total)}</b></td><td><span class="badge ${bgSt}">${status}</span></td></tr>`;
+  }
+  for(const info of Object.values(state.data_ewallet||{})) for(const t of info.transaksi||[]) if(t.jenis==="pengeluaran"){
+    if(t.kategori==="kebutuhan") totKeb+=t.jumlah; else if(t.kategori==="impulsif") totImp+=t.jumlah; else if(t.kategori==="tabungan") totTab+=t.jumlah;
+  }
+  const b=state.bulan_aktif, sakuAkhir=b?hitungSaldoAkhirSaku(b):0;
+  document.getElementById("bk-masuk").textContent=rp(totalMasuk);
+  document.getElementById("bk-keluar").textContent=rp(totalKeluar);
+  document.getElementById("bk-total").textContent=rp(sakuAkhir+ew_total);
+  document.getElementById("bk-tab").textContent=rp(state.data_tabungan.saldo||0);
+  document.getElementById("bk-table").innerHTML=rows||`<tr><td colspan="8" style="text-align:center;color:var(--sub)">Belum ada data</td></tr>`;
+  if(bkChartBulanan) bkChartBulanan.destroy();
+  bkChartBulanan=new Chart(document.getElementById("bk-chartBulanan"),{type:"bar",data:{labels:bulanArr,datasets:[{label:"Pemasukan",data:masukArr,backgroundColor:"#27AE60",borderRadius:6},{label:"Pengeluaran",data:keluarArr,backgroundColor:"#E74C3C",borderRadius:6}]},options:{responsive:true,plugins:{legend:{labels:{color:"#ECF0F1"}}},scales:{x:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}},y:{ticks:{color:"#95A5A6"},grid:{color:"#2C3E50"}}}}});
+  if(bkChartKat) bkChartKat.destroy();
+  bkChartKat=new Chart(document.getElementById("bk-chartKat"),{type:"doughnut",data:{labels:["Kebutuhan","Impulsif","Tabungan (lbl)"],datasets:[{data:[totKeb,totImp,totTab],backgroundColor:["#27AE60","#E74C3C","#2980B9"],borderColor:"#1A2634",borderWidth:2}]},options:{responsive:true,plugins:{legend:{labels:{color:"#ECF0F1"}}}}});
+  if(b&&state.data_keuangan[b]){
+    const d=state.data_keuangan[b], s=d.saldo_awal||0;
+    const m=Object.values(d.pemasukan||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    const k=Object.values(d.pengeluaran||{}).flat().reduce((a,i)=>a+i.jumlah,0);
+    document.getElementById("bk-ring-saku").innerHTML=`<div class="ring-row"><span class="lbl">Saldo Awal</span><span class="val">${rp(s)}</span></div><div class="ring-row"><span class="lbl" style="color:#27AE60">Pemasukan</span><span class="val" style="color:#27AE60">${rp(m)}</span></div><div class="ring-row"><span class="lbl" style="color:#E74C3C">Pengeluaran</span><span class="val" style="color:#E74C3C">${rp(k)}</span></div><div class="ring-row total"><span class="lbl">Saldo Akhir</span><span class="val">${rp(s+m-k)}</span></div>`;
+    let ewHtml="";
+    for(const nama in state.data_ewallet||{}) ewHtml+=`<div class="ring-row"><span class="lbl">${nama}</span><span class="val" style="color:#8E44AD">${rp(state.data_ewallet[nama].saldo)}</span></div>`;
+    ewHtml+=`<div class="ring-row total"><span class="lbl">Total E-Wallet</span><span class="val">${rp(ew_total)}</span></div><div class="ring-row total"><span class="lbl">SALDO TOTAL</span><span class="val" style="color:#27AE60">${rp((s+m-k)+ew_total)}</span></div>`;
+    document.getElementById("bk-ring-ew").innerHTML=ewHtml;
+    let kb=0,ki=0,kt=0;
+    for(const items of Object.values(d.pengeluaran||{})) for(const i of items){
+      if(i.kategori==="kebutuhan") kb+=i.jumlah; else if(i.kategori==="impulsif") ki+=i.jumlah; else if(i.kategori==="tabungan") kt+=i.jumlah;
+    }
+    for(const info of Object.values(state.data_ewallet||{})) for(const t of info.transaksi||[]) if(t.jenis==="pengeluaran"){
+      if(t.kategori==="kebutuhan") kb+=t.jumlah; else if(t.kategori==="impulsif") ki+=t.jumlah; else if(t.kategori==="tabungan") kt+=t.jumlah;
+    }
+    const tot2=kb+ki+kt, impPct=tot2>0?(ki/tot2*100):0;
+    document.getElementById("bk-ring-kat").innerHTML=`<div class="ring-row"><span class="lbl">🟢 Kebutuhan</span><span class="val">${rp(kb)}</span></div><div class="ring-row"><span class="lbl">🔴 Impulsif</span><span class="val">${rp(ki)}</span></div><div class="ring-row"><span class="lbl">🔵 Tabungan (lbl)</span><span class="val">${rp(kt)}</span></div><div class="ring-row total"><span class="lbl">% Impulsif</span><span class="val" style="color:${impPct>=50?"#E74C3C":impPct>=30?"#D35400":"#27AE60"}">${impPct.toFixed(1)}%</span></div><div style="margin-top:10px;font-size:12px;color:${impPct>=50?"#E74C3C":impPct>=30?"#D35400":"#27AE60"};">${impPct>=50?"⚠️ Lebih dari setengah pengeluaran impulsif!":impPct>=30?"⚠️ Impulsif cukup tinggi.":"✅ Pengeluaran terkontrol, bagus!"}</div>`;
+  }
+}
+
+// ===========================
+// EXPORT
+// ===========================
+async function exportExcel(){
+  const res=await fetch("/api/export-excel");
+  if(res.ok){ const blob=await res.blob(); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="laporan_edubank.xlsx"; a.click(); showAlert("alert-transaksi","File Excel berhasil didownload!","success"); }
+  else showAlert("alert-transaksi","Gagal export.","error");
+}
+
+// ===========================
+// INIT
+// ===========================
+loadUserInfo();
+loadState().then(()=>{
+  if(state.bulan_aktif) document.getElementById("global-bulan").value=state.bulan_aktif;
+  updatePills(); refreshDashboard();
+});
+</script>
+</body>
+</html>
