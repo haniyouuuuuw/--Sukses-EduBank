@@ -1,0 +1,8 @@
+edubank.db
+data.json
+__pycache__/
+*.pyc
+.env
+venv/
+laporan_edubank.xlsx
+.vscode/
