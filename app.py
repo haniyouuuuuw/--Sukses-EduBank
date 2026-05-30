@@ -1,19 +1,72 @@
-from flask import Flask, render_template, jsonify, request, send_file
-import json, os, io
+from flask import Flask, render_template, jsonify, request, send_file, session, redirect, url_for
+import json, os, io, sqlite3, hashlib, secrets
+from functools import wraps
 
 app = Flask(__name__)
-DATA_FILE = "data.json"
+app.secret_key = secrets.token_hex(32)
+
+DB_FILE = "edubank.db"
 
 DAFTAR_BULAN = {
     "januari":31,"februari":28,"maret":31,"april":30,"mei":31,"juni":30,
     "juli":31,"agustus":31,"september":30,"oktober":31,"november":30,"desember":31
 }
-URUTAN_BULAN = list(DAFTAR_BULAN.keys())
 
-def baca_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE,"r") as f:
-            return json.load(f)
+# ============================================================
+# DATABASE SETUP
+# ============================================================
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    # Tabel users
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+    ''')
+    # Tabel data keuangan per user (simpan sebagai JSON blob)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_data (
+            user_id INTEGER PRIMARY KEY,
+            bulan_aktif TEXT DEFAULT '',
+            jumlah_hari INTEGER DEFAULT 0,
+            data_keuangan TEXT DEFAULT '{}',
+            data_ewallet TEXT DEFAULT '{}',
+            data_tabungan TEXT DEFAULT '{"saldo": 0, "riwayat": []}',
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_user_by_email(email):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE email = ?", (email,))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def get_user_data(user_id):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT * FROM user_data WHERE user_id = ?", (user_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {
+            "bulan_aktif": row[1],
+            "jumlah_hari": row[2],
+            "data_keuangan": json.loads(row[3]),
+            "data_ewallet": json.loads(row[4]),
+            "data_tabungan": json.loads(row[5])
+        }
     return {
         "bulan_aktif": "",
         "jumlah_hari": 0,
@@ -22,33 +75,132 @@ def baca_data():
         "data_tabungan": {"saldo": 0, "riwayat": []}
     }
 
-def tulis_data(d):
-    with open(DATA_FILE,"w") as f:
-        json.dump(d, f, indent=2)
+def save_user_data(user_id, data):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO user_data (user_id, bulan_aktif, jumlah_hari, data_keuangan, data_ewallet, data_tabungan)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            bulan_aktif   = excluded.bulan_aktif,
+            jumlah_hari   = excluded.jumlah_hari,
+            data_keuangan = excluded.data_keuangan,
+            data_ewallet  = excluded.data_ewallet,
+            data_tabungan = excluded.data_tabungan
+    ''', (
+        user_id,
+        data.get("bulan_aktif", ""),
+        data.get("jumlah_hari", 0),
+        json.dumps(data.get("data_keuangan", {})),
+        json.dumps(data.get("data_ewallet", {})),
+        json.dumps(data.get("data_tabungan", {"saldo": 0, "riwayat": []}))
+    ))
+    conn.commit()
+    conn.close()
 
+# ============================================================
+# AUTH DECORATOR
+# ============================================================
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login_page"))
+        return f(*args, **kwargs)
+    return decorated
+
+# ============================================================
+# ROUTES — AUTH
+# ============================================================
 @app.route("/")
+def root():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    return redirect(url_for("login_page"))
+
+@app.route("/login")
+def login_page():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    return render_template("login.html")
+
+@app.route("/api/register", methods=["POST"])
+def api_register():
+    data  = request.get_json()
+    nama  = data.get("nama", "").strip()
+    email = data.get("email", "").strip().lower()
+    pw    = data.get("password", "")
+
+    if not nama or not email or not pw:
+        return jsonify({"status": "error", "message": "Semua field wajib diisi!"}), 400
+    if len(pw) < 6:
+        return jsonify({"status": "error", "message": "Password minimal 6 karakter!"}), 400
+    if get_user_by_email(email):
+        return jsonify({"status": "error", "message": "Email sudah terdaftar!"}), 400
+
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT INTO users (nama, email, password) VALUES (?, ?, ?)",
+              (nama, email, hash_password(pw)))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "message": "Registrasi berhasil! Silakan login."})
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data  = request.get_json()
+    email = data.get("email", "").strip().lower()
+    pw    = data.get("password", "")
+
+    user = get_user_by_email(email)
+    if not user or user[3] != hash_password(pw):
+        return jsonify({"status": "error", "message": "Email atau password salah!"}), 401
+
+    session["user_id"] = user[0]
+    session["nama"]    = user[1]
+    session["email"]   = user[2]
+    return jsonify({"status": "ok", "nama": user[1], "email": user[2]})
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    session.clear()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/me")
+@login_required
+def api_me():
+    return jsonify({"nama": session["nama"], "email": session["email"]})
+
+# ============================================================
+# ROUTES — APP
+# ============================================================
+@app.route("/app")
+@login_required
 def index():
-    return render_template("index.html")
+    return render_template("index.html", nama=session["nama"])
 
 @app.route("/api/state")
+@login_required
 def api_state():
-    return jsonify(baca_data())
+    return jsonify(get_user_data(session["user_id"]))
 
 @app.route("/api/save", methods=["POST"])
+@login_required
 def api_save():
     d = request.get_json()
-    tulis_data(d)
+    save_user_data(session["user_id"], d)
     return jsonify({"status": "ok"})
 
 # ── Export Excel ──
 @app.route("/api/export-excel")
+@login_required
 def api_export_excel():
     from openpyxl import Workbook
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     from openpyxl.chart import BarChart, Reference
     from openpyxl.utils import get_column_letter
 
-    d = baca_data()
+    d = get_user_data(session["user_id"])
     data_keuangan = d.get("data_keuangan", {})
     data_ewallet  = d.get("data_ewallet", {})
     data_tabungan = d.get("data_tabungan", {"saldo": 0, "riwayat": []})
@@ -70,7 +222,6 @@ def api_export_excel():
     first = True
     kc = {"kebutuhan": "D5F5E3", "impulsif": "FADBD8", "tabungan": "D6EAF8"}
 
-    # ── Sheet per bulan ──
     for bulan, data in data_keuangan.items():
         ws = wb.active if first else wb.create_sheet()
         ws.title = bulan[:15]; first = False
@@ -80,14 +231,12 @@ def api_export_excel():
         ws.column_dimensions["C"].width = 16
         ws.column_dimensions["D"].width = 18
 
-        # Judul
-        ws["A1"] = f"LAPORAN KEUANGAN — {bulan.upper()}"
+        ws["A1"] = f"LAPORAN KEUANGAN — {bulan.upper()} ({session['nama']})"
         ws["A1"].font = Font(bold=True, size=13, color="FFFFFF")
         ws["A1"].fill = hf("1A5276")
         ws["A1"].alignment = Alignment(horizontal="center")
         ws.merge_cells("A1:D1")
 
-        # Pemasukan
         ws["A3"] = "PEMASUKAN (SAKU)"; ws["A3"].font = Font(bold=True, color="FFFFFF")
         ws["A3"].fill = hf("27AE60"); ws.merge_cells("A3:D3")
         for ci, h in enumerate(["Hari","Keterangan","Jumlah (Rp)"], 1):
@@ -103,12 +252,11 @@ def api_export_excel():
         sc(ws.cell(ri,3,total_masuk), align="right", num_fmt="#,##0", bg="D5F5E3")
         ws.cell(ri,2).font = Font(bold=True); ri += 2
 
-        # Pengeluaran
         ws.cell(ri,1,"PENGELUARAN (SAKU)").font = Font(bold=True, color="FFFFFF")
         ws.cell(ri,1).fill = hf("E74C3C"); ws.merge_cells(f"A{ri}:D{ri}"); ri += 1
         for ci, h in enumerate(["Hari","Keterangan","Kategori","Jumlah (Rp)"], 1):
             sh(ws.cell(ri, ci, h), bg="922B21"); ri += 1
-        total_keluar = 0; kat_total = {"kebutuhan":0,"impulsif":0,"tabungan":0}
+        total_keluar = 0
         for hari, items in data.get("pengeluaran", {}).items():
             for item in items:
                 kat = item.get("kategori","kebutuhan")
@@ -116,16 +264,14 @@ def api_export_excel():
                 sc(ws.cell(ri,2,item["keterangan"]))
                 sc(ws.cell(ri,3,kat.capitalize()), align="center", bg=kc.get(kat,"FFFFFF"))
                 sc(ws.cell(ri,4,item["jumlah"]), align="right", num_fmt="#,##0", bg="FADBD8")
-                total_keluar += item["jumlah"]; kat_total[kat] += item["jumlah"]; ri += 1
+                total_keluar += item["jumlah"]; ri += 1
         sc(ws.cell(ri,3,"TOTAL PENGELUARAN"), align="right")
         sc(ws.cell(ri,4,total_keluar), align="right", num_fmt="#,##0", bg="FADBD8")
         ws.cell(ri,3).font = Font(bold=True); ri += 2
 
-        # Ringkasan bulan
         saldo_awal  = data.get("saldo_awal") or 0
         saldo_akhir = saldo_awal + total_masuk - total_keluar
         total_ew    = sum(info.get("saldo",0) for info in data_ewallet.values())
-        saldo_total = saldo_akhir + total_ew
 
         ws.cell(ri,1,"RINGKASAN").font = Font(bold=True, color="FFFFFF")
         ws.cell(ri,1).fill = hf("8E44AD"); ws.merge_cells(f"A{ri}:D{ri}"); ri += 1
@@ -135,7 +281,7 @@ def api_export_excel():
             ("Pengeluaran Saku",  total_keluar),
             ("Saldo Saku Akhir",  saldo_akhir),
             ("Total E-Wallet",    total_ew),
-            ("SALDO TOTAL",       saldo_total),
+            ("SALDO TOTAL",       saldo_akhir + total_ew),
             ("Saldo Tabungan",    data_tabungan.get("saldo",0)),
         ]:
             sc(ws.cell(ri,1,label))
@@ -146,7 +292,6 @@ def api_export_excel():
                 ws.cell(ri,2).font = Font(bold=True)
             ri += 1
 
-    # ── Sheet Ringkasan Semua Bulan ──
     ws2 = wb.create_sheet("Ringkasan Semua Bulan")
     ws2.sheet_view.showGridLines = False
     hdrs = ["Bulan","Saldo Awal","Pemasukan","Pengeluaran","Saldo Saku Akhir","Total E-Wallet","Saldo Total","Status"]
@@ -181,54 +326,11 @@ def api_export_excel():
         chart.series[1].graphicalProperties.solidFill = "E74C3C"
         ws2.add_chart(chart, "J2")
 
-    # ── Sheet E-Wallet ──
-    ws3 = wb.create_sheet("E-Wallet Tracker")
-    ws3.sheet_view.showGridLines = False
-    hdrs3 = ["E-Wallet","Pengguna","Bulan","Jenis","Kategori","Keterangan","Jumlah (Rp)"]
-    widths3 = [20,14,14,14,14,35,18]
-    for col,(h,w) in enumerate(zip(hdrs3,widths3),1):
-        sh(ws3.cell(1,col,h), bg="6C3483")
-        ws3.column_dimensions[get_column_letter(col)].width = w
-    ri3 = 2
-    for nama,info in data_ewallet.items():
-        for t in info.get("transaksi",[]):
-            row=[nama,info.get("pengguna","-"),t.get("bulan","-"),
-                 t.get("jenis","-").capitalize(),t["kategori"].capitalize(),
-                 t["keterangan"],t["jumlah"]]
-            for ci,val in enumerate(row,1):
-                sc(ws3.cell(ri3,ci,val), align="center" if ci<6 else "left",
-                   num_fmt="#,##0" if ci==7 else None, bg=kc.get(t["kategori"],"FFFFFF"))
-            ri3 += 1
-
-    # ── Sheet Tabungan ──
-    ws4 = wb.create_sheet("Tabungan")
-    ws4.sheet_view.showGridLines = False
-    ws4["A1"] = "RIWAYAT TABUNGAN"
-    ws4["A1"].font = Font(bold=True, size=13, color="FFFFFF")
-    ws4["A1"].fill = hf("2980B9")
-    ws4["A1"].alignment = Alignment(horizontal="center")
-    ws4.merge_cells("A1:C1")
-    ws4.column_dimensions["A"].width = 16
-    ws4.column_dimensions["B"].width = 18
-    ws4.column_dimensions["C"].width = 30
-    for ci,h in enumerate(["Jenis","Jumlah (Rp)","Keterangan"],1):
-        sh(ws4.cell(2,ci,h), bg="2471A3")
-    ri4 = 3
-    for r in data_tabungan.get("riwayat",[]):
-        sc(ws4.cell(ri4,1,r.get("jenis","-").capitalize()), align="center",
-           bg="D5F5E3" if r.get("jenis")=="tambah" else "FADBD8")
-        sc(ws4.cell(ri4,2,r.get("jumlah",0)), align="right", num_fmt="#,##0")
-        sc(ws4.cell(ri4,3,r.get("keterangan","-")))
-        ri4 += 1
-    ws4.cell(ri4,1,"SALDO TABUNGAN").font = Font(bold=True)
-    sc(ws4.cell(ri4,1,"SALDO TABUNGAN"))
-    sc(ws4.cell(ri4,2,data_tabungan.get("saldo",0)), align="right", num_fmt="#,##0", bg="D6EAF8")
-    ws4.cell(ri4,1).font = Font(bold=True)
-    ws4.cell(ri4,2).font = Font(bold=True)
-
     buf = io.BytesIO(); wb.save(buf); buf.seek(0)
-    return send_file(buf, download_name="laporan_edubank.xlsx", as_attachment=True,
+    return send_file(buf, download_name=f"laporan_edubank_{session['nama']}.xlsx",
+                     as_attachment=True,
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
